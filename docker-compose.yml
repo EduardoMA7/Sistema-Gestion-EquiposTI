@@ -1,0 +1,86 @@
+x-db-backed-service: &db-backed-service
+  restart: unless-stopped
+  env_file:
+    - .env
+  environment:
+    DB_HOST: db
+    DB_NAME: ${POSTGRES_DB}
+    DB_USER: ${POSTGRES_USER}
+    DB_PASS: ${POSTGRES_PASSWORD}
+  depends_on:
+    - db
+  networks:
+    - it-network
+
+services:
+  db:
+    image: postgres:18
+    container_name: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./database:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - it-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    <<: *db-backed-service
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "${API_PORT}:8000"
+
+  equipment-service:
+    <<: *db-backed-service
+    build: ./services/equipment
+    container_name: equipment-service
+
+  provider-service:
+    <<: *db-backed-service
+    build: ./services/provider
+    container_name: provider-service
+
+  maintenance-service:
+    <<: *db-backed-service
+    build: ./services/maintenance
+    container_name: maintenance-service
+
+  report-service:
+    <<: *db-backed-service
+    build: ./services/report
+    container_name: report-service
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${FRONTEND_PORT}:8501"
+    environment:
+      STREAMLIT_SERVER_PORT: 8501
+      STREAMLIT_SERVER_HEADLESS: "true"
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+    depends_on:
+      - api-gateway
+    networks:
+      - it-network
+
+networks:
+  it-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
