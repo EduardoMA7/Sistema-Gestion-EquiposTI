@@ -56,7 +56,7 @@ def _render_dashboard_tab():
         st.markdown("### Costos de mantenimiento (últimos meses)")
 
         months = st.slider(
-            "Rango de meses para análisis", min_value=3, max_value=24, value=12, step=3
+            "Rango de meses para análisis", min_value=3, max_value=24, value=24, step=3
         )
         cost_data = _get_report_data("maintenance-costs", params={"months": months})
         df_costs = pd.DataFrame(cost_data)

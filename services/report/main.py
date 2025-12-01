@@ -91,12 +91,12 @@ def get_maintenance_cost_report(months: int = 12):
                 COUNT(*) as maintenance_count,
                 COALESCE(SUM(costo_total), 0) as total_cost
             FROM mantenimiento
-            WHERE fecha_fin >= NOW() - INTERVAL '%s months'
+            WHERE fecha_fin >= NOW() - (%s || ' months')::interval
               AND fecha_fin <= NOW()
             GROUP BY TO_CHAR(fecha_fin, 'YYYY-MM')
             ORDER BY month
-        """, (months,))
-        
+        """, (str(months),))
+
         return cur.fetchall()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
